@@ -17,7 +17,7 @@ pipelines:
               curl -d '{
                   "channel": "wp-team-activity",
                   "username": "Bitbucket Pipelines",
-                  "text": "New commit deployed to #WordpressWiki **Master** branch on ```Eemployee Feedback Plugin``` with the following message: \n ```\n'"$COMMIT_MESSAGE"'\nEnv: CloudWays\nDate: '"$COMMIT_DATE"'\nAuthor: '"$COMMIT_AUTHOR"'\n ```"
+                  "text": "New commit deployed to #WordpressWiki **Master** branch on ```Employee Feedback Plugin``` with the following message: \n ```\n'"$COMMIT_MESSAGE"'\nEnv: '"$WPE_STG_ENV"'\nDate: '"$COMMIT_DATE"'\nAuthor: '"$COMMIT_AUTHOR"'\n ```"
                 }' -H "Content-Type: application/json" -X POST https://matter.dblexchange.com/hooks/t34yjuo6a3refeeafr3itdauge
     # stg:
     #   - step:
