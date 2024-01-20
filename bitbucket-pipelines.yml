@@ -8,17 +8,17 @@ pipelines:
               variables:
                 WPE_SSHG_KEY_PRIVATE: $WPE_SSHG_KEY_PRIVATE
                 WPE_ENV: $WPE_PROD_ENV
-                SRC_PATH: './'
-                REMOTE_PATH: '/wp-content/plugins/employee-feedback-form'
-          - COMMIT_MESSAGE=$(git log --format=%B -n 1 $BITBUCKET_COMMIT)
-          - COMMIT_DATE=$(git log -n 1 --pretty=format:'%ci' $BITBUCKET_COMMIT)
-          - COMMIT_AUTHOR=$(git log -n 1 --pretty=format:'%an' $BITBUCKET_COMMIT)
-          - >
-            curl -d '{
-                "channel": "wp-team-activity",
-                "username": "Bitbucket Pipelines",
-                "text": "New commit deployed to #WordpressWiki **Master** branch on ```Eemployee Feedback Plugin``` with the following message: \n ```\n'"$COMMIT_MESSAGE"'\nEnv: CloudWays\nDate: '"$COMMIT_DATE"'\nAuthor: '"$COMMIT_AUTHOR"'\n ```"
-              }' -H "Content-Type: application/json" -X POST https://matter.dblexchange.com/hooks/t34yjuo6a3refeeafr3itdauge
+                SRC_PATH: "./"
+                REMOTE_PATH: "/wp-content/plugins/employee-feedback-form"
+            - COMMIT_MESSAGE=$(git log --format=%B -n 1 $BITBUCKET_COMMIT)
+            - COMMIT_DATE=$(git log -n 1 --pretty=format:'%ci' $BITBUCKET_COMMIT)
+            - COMMIT_AUTHOR=$(git log -n 1 --pretty=format:'%an' $BITBUCKET_COMMIT)
+            - >
+              curl -d '{
+                  "channel": "wp-team-activity",
+                  "username": "Bitbucket Pipelines",
+                  "text": "New commit deployed to #WordpressWiki **Master** branch on ```Eemployee Feedback Plugin``` with the following message: \n ```\n'"$COMMIT_MESSAGE"'\nEnv: CloudWays\nDate: '"$COMMIT_DATE"'\nAuthor: '"$COMMIT_AUTHOR"'\n ```"
+                }' -H "Content-Type: application/json" -X POST https://matter.dblexchange.com/hooks/t34yjuo6a3refeeafr3itdauge
     # stg:
     #   - step:
     #       name: Deploy to Staging
