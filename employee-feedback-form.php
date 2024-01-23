@@ -2,13 +2,24 @@
 /**
  * Plugin Name: Employee Feedback Form
  * Description: A simple plugin to collect employee feedback and display it in the admin dashboard.
- * Version: 1.0
- */
+ * Version: 1.0.2
+ * Date: 2024-01-22
+ * Author: PacificDev
+ * Author URI: https://www.pacificdev.com/
+ * License: MIT
+ * Depends: PHP 7.0, WordPress 5.0
+ * Developer: Jenny Martinez
+ * Developer URI: http://github.com/lajennylove/
+ * 
+**/
 
 if (!class_exists('EmployeeFeedbackForm')) {
     class EmployeeFeedbackForm {
         public function __construct() 
         {
+            // Start a session
+            session_start();
+
             // Check if Contact Form 7 is installed and activated
             if (class_exists('WPCF7')) {
                 // Add the shortcode for the feedback form
@@ -42,7 +53,21 @@ if (!class_exists('EmployeeFeedbackForm')) {
         public function renderFeedbackForm() 
         {
             ob_start(); ?>
-            
+            <style>
+            .updated {
+                background: var(--wp--preset--color--vivid-green-cyan);
+                color: white;
+                padding: 20px 10px 1px 10px;
+                margin-top: 30px;
+                font-weight: bold;
+                line-height: 21px;
+            }
+            tt{
+                color: var(--wp--preset--color--luminous-vivid-amber);
+                size: 12px;
+                
+            }
+            </style>
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                 <input type="hidden" name="action" value="submit_employee_feedback">
                 <input type="hidden" name="_wp_http_referer" value="<?php echo esc_url($_SERVER['REQUEST_URI']); ?>">
@@ -50,10 +75,10 @@ if (!class_exists('EmployeeFeedbackForm')) {
                 <label for="date">Date:</label>
                 <input type="date" name="date" required><br>
 
-                <label for="name">Name:</label>
+                <label for="name">Developer Name:</label>
                 <input type="text" name="name" required><br>
 
-                <label for="jira_ticket">Jira Ticket Number:</label>
+                <label for="jira_ticket">Jira Ticket Number: <tt>WPDB-XXXX</tt></label>
                 <input type="text" name="jira_ticket" required><br>
 
                 <label for="comments">Comments:</label>
@@ -66,6 +91,13 @@ if (!class_exists('EmployeeFeedbackForm')) {
             </form>
 
             <?php
+            // Display a success message if the form was submitted successfully
+            // Check if a success message is set in the session
+            if ( isset($_SESSION['feedback_success']) ) {
+                echo '<div class="updated"><p>' . esc_html($_SESSION['feedback_success']) . '</p></div>';
+                // Clear the success message from the session to prevent it from showing again on page refresh
+                unset($_SESSION['feedback_success']);
+            }
             return ob_get_clean();
         }
 
@@ -84,6 +116,9 @@ if (!class_exists('EmployeeFeedbackForm')) {
 
                 // Encode and store data in a transient
                 set_transient('employee_feedback_' . time(), json_encode($data), 7 * DAY_IN_SECONDS); // Store for 7 days
+
+                // Set a success message in the session
+                $_SESSION['feedback_success'] = 'Feedback submitted successfully!';
 
                 // Redirect back to the form page
                 wp_safe_redirect($_POST['_wp_http_referer']);
