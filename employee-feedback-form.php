@@ -72,17 +72,17 @@ if (!class_exists('EmployeeFeedbackForm')) {
                 <input type="hidden" name="action" value="submit_employee_feedback">
                 <input type="hidden" name="_wp_http_referer" value="<?php echo esc_url($_SERVER['REQUEST_URI']); ?>">
 
-                <label for="date">Date:</label>
-                <input type="date" name="date" required><br>
-
                 <label for="name">Developer Name:</label>
                 <input type="text" name="name" required><br>
 
-                <label for="jira_ticket">Jira Ticket Number: <tt>WPDB-XXXX</tt></label>
-                <input type="text" name="jira_ticket" required><br>
+                <label for="date">Date:</label>
+                <input type="date" name="date" required><br>
 
-                <label for="comments">Comments:</label>
-                <textarea name="comments" required></textarea><br>
+                <label for="yesterdays_tasks">Yesterday's Tasks:</label>
+                <textarea name="yesterdays_tasks" required></textarea><br>
+
+                <label for="todays_tasks">Today's Tasks:</label>
+                <textarea name="todays_tasks" required></textarea><br>
 
                 <label for="blockers">Blockers:</label>
                 <textarea name="blockers"></textarea><br><br>
@@ -104,26 +104,28 @@ if (!class_exists('EmployeeFeedbackForm')) {
         // Handle form submission
         public function handleFormSubmission() 
         {
-            // Check if the form was submitted
             if (isset($_POST['action']) && $_POST['action'] === 'submit_employee_feedback') {
                 $data = array(
-                    'date' => sanitize_text_field($_POST['date']),
-                    'name' => sanitize_text_field($_POST['name']),
-                    'jira_ticket' => sanitize_text_field($_POST['jira_ticket']),
-                    'comments' => sanitize_textarea_field($_POST['comments']),
-                    'blockers' => sanitize_textarea_field($_POST['blockers']),
+                    'name'              => sanitize_text_field($_POST['name']),
+                    'date'              => sanitize_text_field($_POST['date']),
+                    'yesterdays_tasks'  => sanitize_textarea_field($_POST['yesterdays_tasks']),
+                    'todays_tasks'      => sanitize_textarea_field($_POST['todays_tasks']),
+                    'blockers'          => sanitize_textarea_field($_POST['blockers']),
                 );
 
-                // Encode and store data in a transient
-                set_transient('employee_feedback_' . time(), json_encode($data), 7 * DAY_IN_SECONDS); // Store for 7 days
+                set_transient('employee_feedback_' . time(), json_encode($data), 7 * DAY_IN_SECONDS);
 
-                // Set a success message in the session
                 $_SESSION['feedback_success'] = 'Feedback submitted successfully!';
-
-                // Redirect back to the form page
                 wp_safe_redirect($_POST['_wp_http_referer']);
                 exit;
             }
+        }
+
+        // Add a method to convert Jira ticket numbers into links
+        private function convertJiraTickets($text) 
+        {
+            // This regex looks for Jira ticket patterns not already part of a link
+            return preg_replace('/(?<!href="https:\/\/jira\.cltbcanada\.net\/browse\/)\b[A-Z]{4}-\d{3,4}\b/', '<a href="https://jira.cltbcanada.net/browse/$0">$0</a>', $text);
         }
 
         // Add a menu page in the admin dashboard to display feedback data
@@ -132,7 +134,6 @@ if (!class_exists('EmployeeFeedbackForm')) {
             add_menu_page('Feedback Data', 'Feedback Data', 'manage_options', 'feedback-data', array($this, 'displayFeedbackData'));
         }
 
-        // Display feedback data in the admin dashboard
         public function displayFeedbackData() 
         {
             ?>
@@ -142,10 +143,10 @@ if (!class_exists('EmployeeFeedbackForm')) {
                     <thead>
                         <tr>
                             <th>Date Log</th>
-                            <th>Date Register</th>
+                            <th>Date</th>
                             <th>Developer Name</th>
-                            <th>Jira Ticket</th>
-                            <th>Comments</th>
+                            <th>Yesterday's Tasks</th>
+                            <th>Today's Tasks</th>
                             <th>Blockers</th>
                             <th>Action</th>
                         </tr>
@@ -160,7 +161,7 @@ if (!class_exists('EmployeeFeedbackForm')) {
                             $wpdb->prepare(
                                 "SELECT option_name, option_value FROM {$table_name}
                                 WHERE option_name LIKE %s
-                                ORDER BY option_name DESC", // Order by option_name in descending order
+                                ORDER BY option_name DESC",
                                 $transient_prefix . '%'
                             )
                         );
@@ -169,15 +170,14 @@ if (!class_exists('EmployeeFeedbackForm')) {
                             foreach ( $transients as $transient ) {
                                 $data = json_decode( $transient->option_value, true );
                                 if ( $data ) {
-                                    //store datetime in a variable from timestamp in transient name
                                     $datetime = date('Y-m-d H:i:s', substr($transient->option_name, strlen($transient_prefix)));
 
                                     echo '<tr>';
                                     echo '<td>' . $datetime . '</td>';
                                     echo '<td>' . esc_html($data['date']) . '</td>';
                                     echo '<td>' . esc_html($data['name']) . '</td>';
-                                    echo '<td><a href="https://jira.cltbcanada.net/browse/' . esc_html($data['jira_ticket']) . '">' . esc_html($data['jira_ticket']) . '</a></td>';
-                                    echo '<td>' . esc_html(stripslashes($data['comments'])) . '</td>';
+                                    echo '<td>' . $this->convertJiraTickets(stripslashes($data['yesterdays_tasks'])) . '</td>';
+                                    echo '<td>' . $this->convertJiraTickets(stripslashes($data['todays_tasks'])) . '</td>';;
                                     echo '<td>' . esc_html(stripslashes($data['blockers'])) . '</td>';
                                     echo '<td><button class="delete-feedback" data-transient="' . esc_attr($transient->option_name) . '">Delete</button></td>';
                                     echo '</tr>';
@@ -185,8 +185,8 @@ if (!class_exists('EmployeeFeedbackForm')) {
                             }
                         } 
                         else {
-                            echo '<tr><td colspan="5">No data found.</td></tr>';
-                        }
+                            echo '<tr><td colspan="7">No data found.</td></tr>';
+                                }
                         ?>
                     </tbody>
                 </table>
