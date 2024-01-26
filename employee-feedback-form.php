@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Employee Feedback Form
  * Description: A simple plugin to collect employee feedback and display it in the admin dashboard.
- * Version: 1.0.2
- * Date: 2024-01-22
+ * Version: 1.0.3
+ * Date: 2024-01-26
  * Author: PacificDev
  * Author URI: https://www.pacificdev.com/
  * License: MIT
