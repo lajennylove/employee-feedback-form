@@ -13,7 +13,7 @@
  * 
 **/
 
-if (!class_exists('EmployeeFeedbackForm')) {
+if ( !class_exists('EmployeeFeedbackForm' ) ) {
     class EmployeeFeedbackForm {
         public function __construct() 
         {
@@ -21,36 +21,41 @@ if (!class_exists('EmployeeFeedbackForm')) {
             session_start();
 
             // Check if Contact Form 7 is installed and activated
-            if (class_exists('WPCF7')) {
+            if ( class_exists('WPCF7' ) ) {
                 // Add the shortcode for the feedback form
-                add_shortcode('employee_feedback_form', array($this, 'renderFeedbackForm'));
+                add_shortcode( 'employee_feedback_form', array( $this, 'renderFeedbackForm' ) );
 
                 // Create a menu item in the admin dashboard
-                add_action('admin_menu', array($this, 'addMenuPage'));
+                add_action( 'admin_menu', array( $this, 'addMenuPage' ) );
 
                 // Register a hook to handle form submission
-                add_action('admin_post_submit_employee_feedback', array($this, 'handleFormSubmission'));
-                add_action('admin_post_nopriv_submit_employee_feedback', array($this, 'handleFormSubmission'));
+                add_action( 'admin_post_submit_employee_feedback', array( $this, 'handleFormSubmission' ) );
+                add_action( 'admin_post_nopriv_submit_employee_feedback', array( $this, 'handleFormSubmission' ) );
 
                 // Enqueue JavaScript
-                add_action('admin_enqueue_scripts', array($this, 'enqueueScripts'));
+                add_action( 'admin_enqueue_scripts', array( $this, 'enqueueScripts' ) );
 
                 // Handle AJAX request to delete feedback
-                add_action('wp_ajax_delete_employee_feedback', array($this, 'deleteEmployeeFeedback'));
-                add_action('wp_ajax_nopriv_delete_employee_feedback', array($this, 'deleteEmployeeFeedback'));
+                add_action( 'wp_ajax_delete_employee_feedback', array( $this, 'deleteEmployeeFeedback' ) );
+                add_action( 'wp_ajax_nopriv_delete_employee_feedback', array( $this, 'deleteEmployeeFeedback' ) );
 
                 // Activate/deactivate hooks
-                register_activation_hook(__FILE__, array($this, 'activatePlugin'));
-                register_deactivation_hook(__FILE__, array($this, 'deactivatePlugin'));
-                register_uninstall_hook(__FILE__, array($this, 'uninstallPlugin'));
-            } else {
+                register_activation_hook( __FILE__, array( $this, 'activatePlugin' ) );
+                register_deactivation_hook( __FILE__, array( $this, 'deactivatePlugin' ) );
+                register_uninstall_hook( __FILE__, array( $this, 'uninstallPlugin' ) );
+            }
+            else {
                 // Contact Form 7 is not installed, display a message
-                add_action('admin_notices', array($this, 'cf7NotInstalledMessage'));
+                add_action( 'admin_notices', array( $this, 'cf7NotInstalledMessage' ) );
             }
         }
 
-        // Render the feedback form
-        public function renderFeedbackForm() 
+        /**
+         * Render the feedback form
+         *
+         * @return string
+         */
+        public function renderFeedbackForm(): string
         {
             ob_start(); ?>
             <style>
@@ -68,15 +73,12 @@ if (!class_exists('EmployeeFeedbackForm')) {
                 
             }
             </style>
-            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                 <input type="hidden" name="action" value="submit_employee_feedback">
-                <input type="hidden" name="_wp_http_referer" value="<?php echo esc_url($_SERVER['REQUEST_URI']); ?>">
+                <input type="hidden" name="_wp_http_referer" value="<?php echo esc_url( $_SERVER['REQUEST_URI'] ); ?>">
 
-                <label for="name">Developer Name:</label>
+                <label for="name">Name:</label>
                 <input type="text" name="name" required><br>
-
-                <label for="date">Date:</label>
-                <input type="date" name="date" required><br>
 
                 <label for="yesterdays_tasks">Yesterday's Tasks:</label>
                 <textarea name="yesterdays_tasks" required></textarea><br>
@@ -91,50 +93,133 @@ if (!class_exists('EmployeeFeedbackForm')) {
             </form>
 
             <?php
-            // Display a success message if the form was submitted successfully
+
             // Check if a success message is set in the session
-            if ( isset($_SESSION['feedback_success']) ) {
+            if ( isset( $_SESSION['feedback_success'] ) ) {
                 echo '<div class="updated"><p>' . esc_html($_SESSION['feedback_success']) . '</p></div>';
                 // Clear the success message from the session to prevent it from showing again on page refresh
-                unset($_SESSION['feedback_success']);
+                unset( $_SESSION['feedback_success'] );
+            }
+
+            if ( isset( $_SESSION['matter_most'] ) ) {
+                echo '<div class="updated"><p>' . esc_html($_SESSION['matter_most']) . '</p></div>';
+                unset( $_SESSION['matter_most'] );
             }
             return ob_get_clean();
         }
 
-        // Handle form submission
-        public function handleFormSubmission() 
+        /**
+         * Handle form submission
+         *
+         * @return void
+         */
+        public function handleFormSubmission(): void
         {
-            if (isset($_POST['action']) && $_POST['action'] === 'submit_employee_feedback') {
+            if ( isset( $_POST['action'] ) && $_POST['action'] === 'submit_employee_feedback' ) {
                 $data = array(
-                    'name'              => sanitize_text_field($_POST['name']),
-                    'date'              => sanitize_text_field($_POST['date']),
-                    'yesterdays_tasks'  => sanitize_textarea_field($_POST['yesterdays_tasks']),
-                    'todays_tasks'      => sanitize_textarea_field($_POST['todays_tasks']),
-                    'blockers'          => sanitize_textarea_field($_POST['blockers']),
+                    'name'              => sanitize_text_field( $_POST['name'] ),
+                    'yesterdays_tasks'  => sanitize_textarea_field( $_POST['yesterdays_tasks'] ),
+                    'todays_tasks'      => sanitize_textarea_field( $_POST['todays_tasks'] ),
+                    'blockers'          => sanitize_textarea_field( $_POST['blockers'] ),
                 );
 
-                set_transient('employee_feedback_' . time(), json_encode($data), 7 * DAY_IN_SECONDS);
+                set_transient( 'employee_feedback_' . time(), json_encode( $data ), 7 * DAY_IN_SECONDS );
 
+                // Send message to Matter Most
+                $materMostMessage = $this->sendMessageToMatterMost( $data );
+
+                // Predefined message after successfully submission
                 $_SESSION['feedback_success'] = 'Feedback submitted successfully!';
-                wp_safe_redirect($_POST['_wp_http_referer']);
+
+                // If not null store message
+                if (!is_null( $materMostMessage ) ) {
+                    $_SESSION['matter_most'] = $materMostMessage;
+                }
+
+                // Redirect to the form
+                wp_safe_redirect( $_POST['_wp_http_referer'] );
                 exit;
+
             }
         }
 
-        // Add a method to convert Jira ticket numbers into links
-        private function convertJiraTickets($text) 
+        /**
+         * Send messages to matter most
+         *
+         * @param array $message
+         * @return string|null
+         */
+        public function sendMessageToMatterMost ( array $message ): string|null
+        {
+            // Getting ready all te data to send to the webhook
+            $data = array(
+                'channel'   => 'test-bots', // wp-team-activity test-bots
+                'username'  => 'Bitbucket Pipelines',
+                'text'      => '##### Name: **' .$message["name"]. '** 
+Previous: ' .$this->convertJiraTicketsMd( $message["yesterdays_tasks"] ). '
+Current: ' .$this->convertJiraTicketsMd( $message["todays_tasks"] ). '
+Blockers: ' .$this->convertJiraTicketsMd( $message["blockers"] )
+            );
+
+            // Setting the request
+            $response = wp_remote_post('https://matter.dblexchange.com/hooks/t34yjuo6a3refeeafr3itdauge', array(
+                'headers'     => array('Content-Type' => 'application/json; charset=utf-8'),
+                'body'        => json_encode($data),
+                'method'      => 'POST',
+                'data_format' => 'body',
+            ));
+
+            // Check for errors
+            if ( is_wp_error( $response ) ) {
+                $error_message = $response->get_error_message();
+                return "Something went wrong: $error_message";
+            }
+            else {
+                return null;
+            }
+
+        }
+
+        /**
+         * Add a method to convert Jira ticket numbers into html links
+         *
+         * @param string $text
+         * @return string
+         */
+        private function convertJiraTickets( string $text ): string
         {
             // This regex looks for Jira ticket patterns not already part of a link
             return preg_replace('/(?<!href="https:\/\/jira\.cltbcanada\.net\/browse\/)\b[A-Z]{4}-\d{3,4}\b/', '<a href="https://jira.cltbcanada.net/browse/$0">$0</a>', $text);
         }
 
-        // Add a menu page in the admin dashboard to display feedback data
-        public function addMenuPage() 
+        /**
+         * Add a method to convert Jira ticket numbers into markdown links
+         *
+         * @param string $text
+         * @return string
+         */
+        private function convertJiraTicketsMd( string $text ): string
         {
-            add_menu_page('Feedback Data', 'Feedback Data', 'manage_options', 'feedback-data', array($this, 'displayFeedbackData'));
+            // This regex looks for Jira ticket patterns not already part of a link
+            return preg_replace('/(?<!href="https:\/\/jira\.cltbcanada\.net\/browse\/)\b[A-Z]{4}-\d{3,4}\b/', '[$0](https://jira.cltbcanada.net/browse/$0)', $text);
         }
 
-        public function displayFeedbackData() 
+        /**
+         * Add a menu page in the admin dashboard to display feedback data
+         *
+         * @return void
+         */
+        public function addMenuPage(): void
+        {
+            add_menu_page( 'Feedback Data', 'Feedback Data', 'manage_options', 'feedback-data', array( $this, 'displayFeedbackData' ) );
+        }
+
+        /**
+         * Display the feedback data on the dashboard
+         *
+         * @return void
+         */
+        public function displayFeedbackData(): void
         {
             ?>
             <div class="wrap">
@@ -143,7 +228,6 @@ if (!class_exists('EmployeeFeedbackForm')) {
                     <thead>
                         <tr>
                             <th>Date Log</th>
-                            <th>Date</th>
                             <th>Developer Name</th>
                             <th>Yesterday's Tasks</th>
                             <th>Today's Tasks</th>
@@ -174,7 +258,6 @@ if (!class_exists('EmployeeFeedbackForm')) {
 
                                     echo '<tr>';
                                     echo '<td>' . $datetime . '</td>';
-                                    echo '<td>' . esc_html($data['date']) . '</td>';
                                     echo '<td>' . esc_html($data['name']) . '</td>';
                                     echo '<td>' . $this->convertJiraTickets(stripslashes($data['yesterdays_tasks'])) . '</td>';
                                     echo '<td>' . $this->convertJiraTickets(stripslashes($data['todays_tasks'])) . '</td>';;
@@ -194,8 +277,12 @@ if (!class_exists('EmployeeFeedbackForm')) {
             <?php
         }
 
-        // Display a notice if Contact Form 7 is not installed
-        public function cf7NotInstalledMessage() 
+        /**
+         * Display a notice if Contact Form 7 is not installed
+         *
+         * @return void
+         */
+        public function cf7NotInstalledMessage(): void
         {
             ?>
             <div class="error">
@@ -204,18 +291,26 @@ if (!class_exists('EmployeeFeedbackForm')) {
             <?php
         }
 
-        // Enqueue JavaScript
-        public function enqueueScripts() 
+        /**
+         * Enqueue JavaScript
+         *
+         * @return void
+         */
+        public function enqueueScripts(): void
         {
             wp_enqueue_script( 'employee-feedback-script', plugin_dir_url(__FILE__) . 'employee-feedback-script.js', '', '1.0', true );
 
             // Pass the admin-ajax URL to JavaScript
             wp_localize_script( 'employee-feedback-script', 'employee_feedback_data', array(
-                'ajax_url' => admin_url('admin-ajax.php'),
-            ));
+                'ajax_url' => admin_url( 'admin-ajax.php' ),
+            ) );
         }
 
-        // Handle AJAX request to delete feedback
+        /**
+         * Handle AJAX request to delete feedback
+         *
+         * @return void
+         */
         public function deleteEmployeeFeedback() 
         {
             if ( isset( $_REQUEST['transient_name'] ) ) {
@@ -236,57 +331,70 @@ if (!class_exists('EmployeeFeedbackForm')) {
             exit;
         }
 
-        // Activate the plugin
+        /**
+         * Activate the plugin
+         *
+         * @return void
+         */
         public function activatePlugin() 
         {
             // Create a new page with the title "Employee Feedback" and content
-            $page_title = 'Employee Feedback';
-            $page_content = '<p>Please fill the following form to send your report.</p><br>[employee_feedback_form]';
-            $page_slug = 'employee-feedback';
+            $page_title     = 'Employee Feedback';
+            $page_content   = '<p>Please fill the following form to send your report.</p><br>[employee_feedback_form]';
+            $page_slug      = 'employee-feedback';
 
             // Check if the page exists
-            $existing_page = get_page_by_path($page_slug);
+            $existing_page  = get_page_by_path( $page_slug );
 
-            if (!$existing_page) {
+            if ( !$existing_page ) {
                 // Page doesn't exist, create a new one
                 $page = array(
-                    'post_title' => $page_title,
-                    'post_content' => $page_content,
-                    'post_name' => $page_slug,
-                    'post_status' => 'publish',
-                    'post_type' => 'page',
+                    'post_title'    => $page_title,
+                    'post_content'  => $page_content,
+                    'post_name'     => $page_slug,
+                    'post_status'   => 'publish',
+                    'post_type'     => 'page',
                 );
 
                 // Insert the page into the database
-                wp_insert_post($page);
-            } elseif ($existing_page->post_status === 'draft') {
+                wp_insert_post( $page );
+            }
+            elseif ( $existing_page->post_status === 'draft' ) {
                 // Page exists but is in 'draft' status, update it to 'publish'
                 $existing_page->post_status = 'publish';
-                wp_update_post($existing_page);
+                wp_update_post( $existing_page );
             }
         }
 
-        // Deactivate the plugin
+        /**
+         * Deactivate the plugin
+         *
+         * @return void
+         */
         public function deactivatePlugin() 
         {
             // Get the page ID by slug
-            $page = get_page_by_path('employee-feedback');
+            $page = get_page_by_path( 'employee-feedback' );
 
             // Check if the page exists
-            if ($page) {
+            if ( $page ) {
                 // Set the page status to 'draft' when deactivating the plugin
                 $page->post_status = 'draft';
-                wp_update_post($page);
+                wp_update_post( $page );
             }
         }
 
-        // Uninstall the plugin
-        public function uninstallPlugin() 
+        /**
+         * Uninstall the plugin
+         *
+         * @return void
+         */
+        public function uninstallPlugin(): void
         {
             // Delete all transients created by the plugin
             global $wpdb;
-            $transient_prefix = '_transient_employee_feedback_';
-            $transients = $wpdb->get_col(
+            $transient_prefix   = '_transient_employee_feedback_';
+            $transients        = $wpdb->get_col(
                 $wpdb->prepare(
                     "SELECT option_name FROM {$wpdb->options}
                     WHERE option_name LIKE %s",
@@ -294,7 +402,7 @@ if (!class_exists('EmployeeFeedbackForm')) {
                 )
             );
 
-            if ($transients) {
+            if ( $transients ) {
                 foreach ( $transients as $transient ) {
                      // Remove the "_transient_" prefix
                     $transientName = str_replace( '_transient_', '', $transient );
@@ -303,7 +411,7 @@ if (!class_exists('EmployeeFeedbackForm')) {
             }
 
             // Get the page ID by slug
-            $page = get_page_by_path('employee-feedback');
+            $page = get_page_by_path( 'employee-feedback' );
 
             // Check if the page exists
             if ( $page ) {
