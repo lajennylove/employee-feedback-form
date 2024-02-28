@@ -156,9 +156,9 @@ if ( !class_exists('EmployeeFeedbackForm' ) ) {
                 'channel'   => 'wp-team-activity', // wp-team-activity test-bots
                 'username'  => 'Bitbucket Pipelines',
                 'text'      => '##### Name: **' .$message["name"]. '** 
-Previous: ' .$this->convertJiraTicketsMd( $message["yesterdays_tasks"] ). '
-Current: ' .$this->convertJiraTicketsMd( $message["todays_tasks"] ). '
-Blockers: ' .$this->convertJiraTicketsMd( $message["blockers"] )
+**Previous**: ' .$this->convertJiraTicketsMd( $message["yesterdays_tasks"] ). '
+**Current**: ' .$this->convertJiraTicketsMd( $message["todays_tasks"] ). '
+**Blockers**: ' .$this->convertJiraTicketsMd( $message["blockers"] )
             );
 
             // Setting the request
