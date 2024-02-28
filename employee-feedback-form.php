@@ -153,7 +153,7 @@ if ( !class_exists('EmployeeFeedbackForm' ) ) {
         {
             // Getting ready all te data to send to the webhook
             $data = array(
-                'channel'   => 'test-bots', // wp-team-activity test-bots
+                'channel'   => 'wp-team-activity', // wp-team-activity test-bots
                 'username'  => 'Bitbucket Pipelines',
                 'text'      => '##### Name: **' .$message["name"]. '** 
 Previous: ' .$this->convertJiraTicketsMd( $message["yesterdays_tasks"] ). '
